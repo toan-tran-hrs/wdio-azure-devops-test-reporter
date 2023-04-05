@@ -5,3 +5,4 @@ dist
 .prettierignore
 README.md
 LICENSE-MIT
+*.ps1

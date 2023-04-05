@@ -1,6 +1,7 @@
 import { Tag } from "@wdio/reporter";
 import { Capabilities } from "@wdio/types";
 import { AzureConfigurationCapability } from "./types";
+import { colorCodeRegex } from "./constants.js";
 
 export class Utils {
   public convertIdToAzureActionPathId(id: number): string {
@@ -54,5 +55,9 @@ export class Utils {
       }
     )?.azureConfigId;
     return matchedId ?? "";
+  }
+
+  public removeColorCode(error: string): string {
+    return error.replace(colorCodeRegex, "");
   }
 }

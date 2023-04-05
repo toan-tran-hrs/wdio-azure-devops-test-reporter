@@ -79,7 +79,7 @@ export default class AzureDevopsReporter extends WDIOReporter {
           outcome: AzureTestStatusCucumberStatusMap[test.state],
           startedDate: test.start,
           completedDate: test.end,
-          errorMessage: test.error?.stack,
+          errorMessage: test.error?.stack ? this.utils.removeColorCode(test.error.stack) : "",
         });
         actionPathIndex++;
 
