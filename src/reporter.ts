@@ -1,16 +1,20 @@
 import WDIOReporter, { RunnerStats, SuiteStats, TestStats } from "@wdio/reporter";
-import { AzureReporterOptions } from "./types";
-import * as TestInterfaces from "azure-devops-node-api/interfaces/TestInterfaces";
+import { AzureReporterOptions, TestReport } from "./types.js";
 import { Utils } from "./utils.js";
-import { AzureTestStatusCucumberStatusMap } from "./constants.js";
+import { AzureTestResultOutcome, AzureTestRunStatus, AzureTestStatusCucumberStatusMap } from "./constants.js";
 import fs from "fs";
 import { DesiredCapabilities } from "@wdio/types/build/Capabilities";
+import {
+  TestActionResultModel,
+  TestCaseResult,
+  TestIterationDetailsModel,
+} from "azure-devops-node-api/interfaces/TestInterfaces";
 
 export default class AzureDevopsReporter extends WDIOReporter {
   private reporterOptions: AzureReporterOptions;
   private azureConfigurationId: string;
   private utils: Utils;
-  private azureTestResult: TestInterfaces.TestCaseResult[];
+  private azureTestResult: TestCaseResult[];
   private currentSuiteTitle?: string;
 
   constructor(options: AzureReporterOptions) {
@@ -38,37 +42,38 @@ export default class AzureDevopsReporter extends WDIOReporter {
   }
 
   onRunnerEnd(): void {
-    this.write(
-      JSON.stringify(
-        {
-          azureConfigurationId: this.azureConfigurationId,
-          testResults: this.azureTestResult,
-        },
-        null,
-        2
-      )
-    );
+    const report: TestReport = {
+      azureConfigurationId: this.azureConfigurationId,
+      testResults: this.azureTestResult,
+    };
+    this.write(JSON.stringify(report, null, 2));
   }
 
   onSuiteEnd(suite: SuiteStats) {
     const isScenario = suite.type === "scenario";
+    const isFeature = suite.type === "feature";
+
     if (isScenario) {
       if (suite.title !== this.currentSuiteTitle) {
         this.currentSuiteTitle = suite.title;
         this.azureTestResult.push({
-          id: this.utils.parseCaseID(suite.tags, this.reporterOptions.caseIdRegex),
+          testCase: { id: String(this.utils.parseCaseID(suite.tags, this.reporterOptions.caseIdRegex)) },
           iterationDetails: [],
+          outcome: AzureTestResultOutcome.Passed,
         });
+
+        if (this.azureTestResult.length > 1) {
+          this.azureTestResult[this.azureTestResult.length - 2].state = AzureTestRunStatus.COMPLETED;
+        }
       }
 
-      const currentTestResultIndex = this.azureTestResult.length - 1;
       const iterationDetailsLength =
-        this.azureTestResult[currentTestResultIndex].iterationDetails?.length ?? 0;
+        this.azureTestResult[this.azureTestResult.length - 1].iterationDetails?.length ?? 0;
       const currentIterationId = iterationDetailsLength + 1;
 
       let isSuitePassed = true;
 
-      const actionResults: TestInterfaces.TestActionResultModel[] = [];
+      const actionResults: TestActionResultModel[] = [];
       // The azure step ID value for first step starts with 2
       let actionPathIndex = 2;
       suite.tests.forEach((test: TestStats) => {
@@ -86,7 +91,7 @@ export default class AzureDevopsReporter extends WDIOReporter {
         if (test.state === "failed") isSuitePassed = false;
       });
 
-      const iterationModel: TestInterfaces.TestIterationDetailsModel = {
+      const iterationModel: TestIterationDetailsModel = {
         outcome: isSuitePassed
           ? AzureTestStatusCucumberStatusMap.passed
           : AzureTestStatusCucumberStatusMap.failed,
@@ -97,7 +102,12 @@ export default class AzureDevopsReporter extends WDIOReporter {
         actionResults: actionResults,
       };
 
-      this.azureTestResult[currentTestResultIndex].iterationDetails?.push(iterationModel);
+      if (!isSuitePassed)
+        this.azureTestResult[this.azureTestResult.length - 1].outcome = AzureTestResultOutcome.Failed;
+
+      this.azureTestResult[this.azureTestResult.length - 1].iterationDetails?.push(iterationModel);
+    } else if (isFeature) {
+      this.azureTestResult[this.azureTestResult.length - 1].state = AzureTestRunStatus.COMPLETED;
     }
   }
 }
