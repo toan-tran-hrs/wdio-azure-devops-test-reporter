@@ -1,4 +1,4 @@
-import { Tag } from "@wdio/reporter";
+import { CommandArgs, Tag } from "@wdio/reporter";
 import { Capabilities } from "@wdio/types";
 import { AzureConfigurationCapability } from "./types";
 import { colorCodeRegex } from "./constants.js";
@@ -59,5 +59,16 @@ export class Utils {
 
   public removeColorCode(error: string): string {
     return error.replace(colorCodeRegex, "");
+  }
+
+  public isScreenshotCommand(command: CommandArgs): boolean {
+    const isScrenshotEndpoint = /\/session\/[^/]*(\/element\/[^/]*)?\/screenshot/;
+
+    return (
+      // WebDriver protocol
+      (command.endpoint && isScrenshotEndpoint.test(command.endpoint)) ||
+      // DevTools protocol
+      command.command === "takeScreenshot"
+    );
   }
 }

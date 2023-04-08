@@ -1,5 +1,5 @@
-import WDIOReporter, { RunnerStats, SuiteStats, TestStats } from "@wdio/reporter";
-import { AzureReporterOptions, TestReport } from "./types.js";
+import WDIOReporter, { AfterCommandArgs, RunnerStats, SuiteStats, TestStats } from "@wdio/reporter";
+import { AzureReporterOptions, Screenshot, TestReport } from "./types.js";
 import { Utils } from "./utils.js";
 import { AzureTestResultOutcome, AzureTestRunStatus, AzureTestStatusCucumberStatusMap } from "./constants.js";
 import fs from "fs";
@@ -15,7 +15,10 @@ export default class AzureDevopsReporter extends WDIOReporter {
   private azureConfigurationId: string;
   private utils: Utils;
   private azureTestResult: TestCaseResult[];
+  private screenshots: { [testcaseId: string]: Screenshot };
+
   private currentSuiteTitle?: string;
+  private currentFailedScreenshot?: string;
 
   constructor(options: AzureReporterOptions) {
     if (!options) {
@@ -28,6 +31,7 @@ export default class AzureDevopsReporter extends WDIOReporter {
     this.utils = new Utils();
     this.azureTestResult = [];
     this.azureConfigurationId = "";
+    this.screenshots = {};
   }
 
   onRunnerStart(runner: RunnerStats) {
@@ -45,6 +49,7 @@ export default class AzureDevopsReporter extends WDIOReporter {
     const report: TestReport = {
       azureConfigurationId: this.azureConfigurationId,
       testResults: this.azureTestResult,
+      screenshots: this.screenshots,
     };
     this.write(JSON.stringify(report, null, 2));
   }
@@ -77,9 +82,10 @@ export default class AzureDevopsReporter extends WDIOReporter {
       // The azure step ID value for first step starts with 2
       let actionPathIndex = 2;
       suite.tests.forEach((test: TestStats) => {
+        const actionPath = this.utils.convertIdToAzureActionPathId(actionPathIndex);
         actionResults.push({
           iterationId: currentIterationId,
-          actionPath: this.utils.convertIdToAzureActionPathId(actionPathIndex),
+          actionPath: actionPath,
           stepIdentifier: String(actionPathIndex),
           outcome: AzureTestStatusCucumberStatusMap[test.state],
           startedDate: test.start,
@@ -88,7 +94,19 @@ export default class AzureDevopsReporter extends WDIOReporter {
         });
         actionPathIndex++;
 
-        if (test.state === "failed") isSuitePassed = false;
+        if (test.state === "failed") {
+          isSuitePassed = false;
+
+          if (this.currentFailedScreenshot) {
+            const currentTestCaseId =
+              this.azureTestResult[this.azureTestResult.length - 1].testCase?.id ?? "";
+            this.screenshots[currentTestCaseId] = {
+              iterationId: currentIterationId,
+              actionPath: actionPath,
+              base64encodedContent: this.currentFailedScreenshot ?? "",
+            };
+          }
+        }
       });
 
       const iterationModel: TestIterationDetailsModel = {
@@ -108,6 +126,14 @@ export default class AzureDevopsReporter extends WDIOReporter {
       this.azureTestResult[this.azureTestResult.length - 1].iterationDetails?.push(iterationModel);
     } else if (isFeature) {
       this.azureTestResult[this.azureTestResult.length - 1].state = AzureTestRunStatus.COMPLETED;
+    }
+  }
+
+  onAfterCommand(command: AfterCommandArgs) {
+    const isScreenshot = this.utils.isScreenshotCommand(command);
+
+    if (isScreenshot && command.result?.value) {
+      this.currentFailedScreenshot = command.result?.value;
     }
   }
 }
