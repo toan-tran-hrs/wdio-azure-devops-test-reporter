@@ -65,10 +65,17 @@ export default class AzureDevopsReporter extends WDIOReporter {
           testCase: { id: String(this.utils.parseCaseID(suite.tags, this.reporterOptions.caseIdRegex)) },
           iterationDetails: [],
           outcome: AzureTestResultOutcome.Passed,
+          startedDate: suite.start,
         });
 
         if (this.azureTestResult.length > 1) {
-          this.azureTestResult[this.azureTestResult.length - 2].state = AzureTestRunStatus.COMPLETED;
+          const lastFinishTestResult = this.azureTestResult[this.azureTestResult.length - 2];
+          const lastIteration = lastFinishTestResult.iterationDetails
+            ? lastFinishTestResult.iterationDetails[lastFinishTestResult.iterationDetails.length - 1]
+            : undefined;
+
+          lastFinishTestResult.state = AzureTestRunStatus.COMPLETED;
+          lastFinishTestResult.completedDate = lastIteration?.completedDate;
         }
       }
 
@@ -90,6 +97,7 @@ export default class AzureDevopsReporter extends WDIOReporter {
           outcome: AzureTestStatusCucumberStatusMap[test.state],
           startedDate: test.start,
           completedDate: test.end,
+          durationInMs: test._duration,
           errorMessage: test.error?.stack ? this.utils.removeColorCode(test.error.stack) : "",
         });
         actionPathIndex++;
@@ -97,15 +105,12 @@ export default class AzureDevopsReporter extends WDIOReporter {
         if (test.state === "failed") {
           isSuitePassed = false;
 
-          if (this.currentFailedScreenshot) {
-            const currentTestCaseId =
-              this.azureTestResult[this.azureTestResult.length - 1].testCase?.id ?? "";
-            this.screenshots[currentTestCaseId] = {
-              iterationId: currentIterationId,
-              actionPath: actionPath,
-              base64encodedContent: this.currentFailedScreenshot ?? "",
-            };
-          }
+          const currentTestCaseId = this.azureTestResult[this.azureTestResult.length - 1].testCase?.id ?? "";
+          this.screenshots[currentTestCaseId] = {
+            iterationId: currentIterationId,
+            actionPath: actionPath,
+            base64encodedContent: this.currentFailedScreenshot ?? "",
+          };
         }
       });
 
@@ -116,7 +121,11 @@ export default class AzureDevopsReporter extends WDIOReporter {
         id: currentIterationId,
         startedDate: suite.start,
         completedDate: suite.end,
-        durationInMs: suite._duration,
+        /* Must be converted from ms to hundreds of microseconds 
+        to display correctly on the iteration detail section.
+        This may be a bug from azure side.
+        */
+        durationInMs: suite._duration * 10000,
         actionResults: actionResults,
       };
 
@@ -125,7 +134,15 @@ export default class AzureDevopsReporter extends WDIOReporter {
 
       this.azureTestResult[this.azureTestResult.length - 1].iterationDetails?.push(iterationModel);
     } else if (isFeature) {
-      this.azureTestResult[this.azureTestResult.length - 1].state = AzureTestRunStatus.COMPLETED;
+      const lastFinishTestResult = this.azureTestResult[this.azureTestResult.length - 1];
+      const lastIteration = lastFinishTestResult.iterationDetails
+        ? lastFinishTestResult.iterationDetails[lastFinishTestResult.iterationDetails.length - 1]
+        : undefined;
+
+      lastFinishTestResult.state = AzureTestRunStatus.COMPLETED;
+
+      const resultCompletedDate = lastIteration?.completedDate;
+      lastFinishTestResult.completedDate = resultCompletedDate;
     }
   }
 
