@@ -13,6 +13,7 @@ export interface AzureConfigurationCapability {
 }
 
 export interface Screenshot {
+  testCaseId: string;
   iterationId: number;
   actionPath: string;
   base64encodedContent: string;
@@ -21,5 +22,5 @@ export interface Screenshot {
 export interface TestReport {
   azureConfigurationId: string;
   testResults: TestCaseResult[];
-  screenshots: { [testcaseId: string]: Screenshot };
+  screenshots: Screenshot[];
 }

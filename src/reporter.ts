@@ -15,7 +15,7 @@ export default class AzureDevopsReporter extends WDIOReporter {
   private azureConfigurationId: string;
   private utils: Utils;
   private azureTestResult: TestCaseResult[];
-  private screenshots: { [testcaseId: string]: Screenshot };
+  private screenshots: Screenshot[];
 
   private currentSuiteTitle?: string;
   private currentFailedScreenshot?: string;
@@ -31,7 +31,7 @@ export default class AzureDevopsReporter extends WDIOReporter {
     this.utils = new Utils();
     this.azureTestResult = [];
     this.azureConfigurationId = "";
-    this.screenshots = {};
+    this.screenshots = [];
   }
 
   onRunnerStart(runner: RunnerStats) {
@@ -106,11 +106,12 @@ export default class AzureDevopsReporter extends WDIOReporter {
           isSuitePassed = false;
 
           const currentTestCaseId = this.azureTestResult[this.azureTestResult.length - 1].testCase?.id ?? "";
-          this.screenshots[currentTestCaseId] = {
+          this.screenshots.push({
+            testCaseId: currentTestCaseId,
             iterationId: currentIterationId,
             actionPath: actionPath,
             base64encodedContent: this.currentFailedScreenshot ?? "",
-          };
+          });
         }
       });
 

@@ -1,6 +1,6 @@
 {
   "name": "wdio-azure-devops-test-reporter",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A WebdriverIO reporter to create reports to import into Azure Test Plan",
   "author": "Duc Toan <ductoan0295@gmail.com>",
   "homepage": "https://github.com/ductoan0295/wdio-azure-devops-test-reporter",
