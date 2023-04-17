@@ -36,8 +36,9 @@ export default class AzureDevopsReporter extends WDIOReporter {
 
   onRunnerStart(runner: RunnerStats) {
     if (!runner.isMultiremote) {
+      const capabilities = runner.config.capabilities ?? runner.capabilities;
       this.azureConfigurationId = this.utils.getAzureConfigurationIDByCapability(
-        runner.config.capabilities as DesiredCapabilities,
+        capabilities as DesiredCapabilities,
         this.reporterOptions.azureConfigurationCapabilities
       );
     }
