@@ -99,7 +99,9 @@ export default class AzureDevopsReporter extends WDIOReporter {
           startedDate: test.start,
           completedDate: test.end,
           durationInMs: test._duration,
-          errorMessage: test.error?.stack ? this.utils.removeColorCode(test.error.stack) : "",
+          errorMessage: `Step: ${test.title}\n\n${
+            test.error?.stack ? this.utils.removeColorCode(test.error.stack) : ""
+          }`,
         });
         actionPathIndex++;
 
