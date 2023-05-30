@@ -109,12 +109,15 @@ export default class AzureDevopsReporter extends WDIOReporter {
           isSuitePassed = false;
 
           const currentTestCaseId = this.azureTestResult[this.azureTestResult.length - 1].testCase?.id ?? "";
-          this.screenshots.push({
-            testCaseId: currentTestCaseId,
-            iterationId: currentIterationId,
-            actionPath: actionPath,
-            base64encodedContent: this.currentFailedScreenshot ?? "",
-          });
+
+          if (this.currentFailedScreenshot) {
+            this.screenshots.push({
+              testCaseId: currentTestCaseId,
+              iterationId: currentIterationId,
+              actionPath: actionPath,
+              base64encodedContent: this.currentFailedScreenshot,
+            });
+          }
         }
       });
 
