@@ -1,6 +1,6 @@
 {
   "name": "wdio-azure-devops-test-reporter",
-  "version": "0.0.5",
+  "version": "0.0.10",
   "description": "A WebdriverIO reporter to create reports to import into Azure Test Plan",
   "author": "Duc Toan <ductoan0295@gmail.com>",
   "homepage": "https://github.com/ductoan0295/wdio-azure-devops-test-reporter",
@@ -45,7 +45,8 @@
   "dependencies": {
     "@wdio/reporter": "^8.6.8",
     "@wdio/types": "^8.6.8",
-    "azure-devops-node-api": "^12.0.0"
+    "azure-devops-node-api": "^12.0.0",
+    "markdown-table": "^3.0.3"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.57.1",

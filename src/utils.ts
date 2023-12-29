@@ -1,7 +1,8 @@
-import { CommandArgs, Tag } from "@wdio/reporter";
+import { Argument, CommandArgs, Tag } from "@wdio/reporter";
 import { Capabilities } from "@wdio/types";
 import { AzureConfigurationCapability } from "./types";
 import { colorCodeRegex } from "./constants.js";
+import { markdownTable } from "markdown-table";
 
 export class Utils {
   public convertIdToAzureActionPathId(id: number): string {
@@ -70,5 +71,25 @@ export class Utils {
       // DevTools protocol
       command.command === "takeScreenshot"
     );
+  }
+
+  public formatTestArgument(argument: string | Argument | undefined): string {
+    if (argument) {
+      if (typeof argument === "string") {
+        return argument;
+      } else {
+        const table = argument.rows?.map((row) => row.cells);
+        const formattedTable = table ? markdownTable(table) : "";
+
+        // Remove the seperator line between table header and table body
+        const indexOfFirstLineBreak = formattedTable.indexOf("\n");
+        const indexOfSecondLineBreak = formattedTable.indexOf("\n", indexOfFirstLineBreak + 1);
+        const header = formattedTable.substring(0, indexOfFirstLineBreak);
+        const body = formattedTable.substring(indexOfSecondLineBreak + 1);
+
+        return `${header}\n${body}`.replace(/\n/g, "\n\n");
+      }
+    }
+    return "";
   }
 }
